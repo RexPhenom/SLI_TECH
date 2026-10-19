@@ -21,6 +21,10 @@ Deno.serve(async (req) => {
   if (!user) return json(req, { error: "Please sign in." }, 401);
   const adm = await rest("smg_admin_roles?select=role&user_id=eq." + user.id + "&limit=1");
   if (!adm || !adm.length) return json(req, { error: "Admins only." }, 403);
+  // the gateway has already verified this token; require a two-step verified session (aal2)
+  let aal = "";
+  try { aal = JSON.parse(atob((req.headers.get("authorization") || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).aal || ""; } catch (_) { /* leave empty */ }
+  if (aal !== "aal2") return json(req, { error: "Two-step login required." }, 403);
   if (!KEY) return json(req, { error: "SMMFREE_API_KEY is not set yet. Add it in Supabase → Edge Functions → Secrets." }, 503);
   let b: any; try { b = JSON.parse(await req.text()); } catch (_) { return json(req, { error: "Invalid request." }, 400); }
   try {
